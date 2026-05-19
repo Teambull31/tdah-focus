@@ -1252,6 +1252,32 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .app .sidebar .nav-item .ic { font-size: 20px; }
 }
 
+/* ── 13. Corrections overflow & layout ── */
+@media (max-width: 600px) {
+  /* Contenir les ombres dans le viewport */
+  .shell { overflow-x: hidden; }
+
+  /* Réduire les ombres dures pour qu'elles ne dépassent pas l'écran :
+     shadow-2 (6px) → 3px, ce qui laisse ~13px de marge visible */
+  .card            { box-shadow: 3px 3px 0 var(--ink); }
+  .task-detailed   { box-shadow: 2px 2px 0 var(--ink); }
+  .btn             { box-shadow: 2px 2px 0 var(--ink); }
+  .btn:hover       { box-shadow: 3px 3px 0 var(--ink); }
+  .stim-high .card { box-shadow: 4px 4px 0 var(--ink); }
+
+  /* Padding horizontal légèrement plus grand (14 → 16 px) :
+     card shadow 3px + 16px padding = 13px de marge visible ✓ */
+  .main { padding-left: 16px; padding-right: 16px; }
+
+  /* Header salutation : empiler verticalement pour éviter le conflit
+     avec le bouton FR/EN fixe en haut à droite */
+  .greet { flex-direction: column; align-items: flex-start; gap: 10px; }
+  /* Laisser 72px à droite pour le bouton FR/EN (≈68px large + 12px right) */
+  .greet > div:first-child { padding-right: 72px; }
+  /* Chips en dessous de la salutation : affichage libre */
+  .greet-meta { flex-wrap: wrap; gap: 6px; align-items: center; }
+}
+
 /* ── Dim overlay — écran sombre pendant le focus (économie OLED + anti-stim) ── */
 .dim-overlay {
   position: fixed; inset: 0; z-index: 1050;
