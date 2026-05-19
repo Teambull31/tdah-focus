@@ -1100,8 +1100,8 @@ body {
 button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 input, textarea, select { -webkit-tap-highlight-color: transparent; }
 
-/* ── 2. Tablet/mobile: move lang-toggle below the sticky top nav so they don't overlap ── */
-@media (max-width: 1080px) {
+/* ── 2. Tablet (601–1080px): move lang-toggle below the sticky top nav ── */
+@media (min-width: 601px) and (max-width: 1080px) {
   .lang-toggle {
     top: auto;
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
@@ -1109,15 +1109,71 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
   }
 }
 
-/* ── 3. Mobile sidebar: hide brand name to reclaim horizontal space ── */
+/* ── 3. Mobile (≤600px): barre de navigation en bas (bottom tab bar) ── */
 @media (max-width: 600px) {
-  /* Keep only the emoji mark, drop the text block */
-  .sidebar .brand > :not(.brand-mark) { display: none; }
-  /* Spread nav icons evenly across the bar */
-  .sidebar .nav { flex: 1; }
-  .sidebar .nav-item { flex: 1; justify-content: center; padding: 8px 4px; }
-  /* Tighter overall sidebar padding */
-  .sidebar { gap: 8px; padding: 8px 10px; }
+  /* Sidebar → barre fixe en bas de l'écran */
+  .app .sidebar {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: stretch;
+    padding: 4px 0 calc(4px + env(safe-area-inset-bottom, 0px));
+    gap: 0;
+    border-right: none;
+    border-top: var(--border-w) solid var(--line);
+    border-bottom: none;
+    overflow: visible;
+    z-index: 50;
+  }
+
+  /* Masquer le logo et les cartes latérales */
+  .app .sidebar .brand    { display: none; }
+  .app .sidebar .side-card { display: none; }
+  .app .sidebar > div:last-child { display: none; }
+
+  /* La nav occupe toute la largeur */
+  .app .sidebar .nav {
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
+  }
+
+  /* Chaque item : icône + label empilés, largeur égale */
+  .app .sidebar .nav-item {
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 2px 2px;
+    border-radius: var(--r-sm);
+    gap: 2px;
+    min-height: 50px;
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  /* Labels visibles pour tous les items (sous l'icône) */
+  .app .sidebar .nav-item span:not(.ic) { display: block; font-size: 9px; letter-spacing: 0; font-weight: 600; }
+  .app .sidebar .nav-item.active span:not(.ic) { display: block; }
+
+  /* Item actif : couleur accent, pas de fond rempli */
+  .app .sidebar .nav-item.active {
+    background: transparent;
+    color: var(--coral);
+    border-color: transparent;
+    box-shadow: none;
+    transform: none;
+  }
+  .app .sidebar .nav-item .ic { font-size: 22px; }
+
+  /* Le contenu principal doit passer au-dessus de la barre */
+  .main { padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* ── 4. Tighter content layout on phones ── */
@@ -1175,23 +1231,25 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .modal-opt { padding: 10px 12px; }
 }
 
-/* ── 11. Parking lot & lang-toggle: honour iOS safe-area at bottom ── */
+/* ── 11. Parking lot au-dessus de la bottom tab bar ── */
 @media (max-width: 600px) {
-  .parking { bottom: max(14px, calc(8px + env(safe-area-inset-bottom, 0px))); left: 14px; }
-  .lang-toggle { bottom: max(14px, calc(8px + env(safe-area-inset-bottom, 0px))); right: 14px; }
+  /* Lang-toggle reste en haut à droite sur mobile (la bottom bar occupe le bas) */
+  .lang-toggle { top: 12px; bottom: auto; right: 12px; }
+  /* Parking lot : flotte au-dessus de la barre de nav du bas */
+  .parking { bottom: calc(62px + env(safe-area-inset-bottom, 0px)); left: 14px; }
 }
 
-/* ── 12. Very small phones (≤ 380 px) ── */
+/* ── 12. Très petits écrans (≤ 380 px) ── */
 @media (max-width: 380px) {
-  .sidebar { padding: 6px 8px; gap: 4px; }
-  .sidebar .nav-item { padding: 6px 2px; }
-  .sidebar .nav-item .ic { font-size: 15px; }
   /* Override the 56 px set in the ≤600 px block */
   .time-display { font-size: 44px !important; }
-  .main { padding: 10px 12px calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .main { padding: 10px 12px calc(72px + env(safe-area-inset-bottom, 0px)); }
   .card { padding: 12px; }
   .greet h1 { font-size: 22px !important; }
   .btn.big { padding: 11px 16px; font-size: 15px; }
+  /* Bottom tab bar encore plus compacte */
+  .app .sidebar .nav-item { min-height: 46px; }
+  .app .sidebar .nav-item .ic { font-size: 20px; }
 }
 
 /* ── Dim overlay — écran sombre pendant le focus (économie OLED + anti-stim) ── */
