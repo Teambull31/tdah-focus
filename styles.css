@@ -1084,3 +1084,112 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
 .stim-low .progress-wrap { border-color: var(--ink); background: var(--cream-2); }
 .stim-low .progress-label { color: var(--ink); mix-blend-mode: normal; }
 .stim-low .btn.ghost { color: var(--ink); border-color: var(--ink); }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE-RESPONSIVE ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1. Global touch & scroll polish ── */
+html { overflow-x: hidden; }
+body {
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+  /* Reserve space for iOS home indicator at the bottom */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+input, textarea, select { -webkit-tap-highlight-color: transparent; }
+
+/* ── 2. Tablet/mobile: move lang-toggle below the sticky top nav so they don't overlap ── */
+@media (max-width: 1080px) {
+  .lang-toggle {
+    top: auto;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+  }
+}
+
+/* ── 3. Mobile sidebar: hide brand name to reclaim horizontal space ── */
+@media (max-width: 600px) {
+  /* Keep only the emoji mark, drop the text block */
+  .sidebar .brand > :not(.brand-mark) { display: none; }
+  /* Spread nav icons evenly across the bar */
+  .sidebar .nav { flex: 1; }
+  .sidebar .nav-item { flex: 1; justify-content: center; padding: 8px 4px; }
+  /* Tighter overall sidebar padding */
+  .sidebar { gap: 8px; padding: 8px 10px; }
+}
+
+/* ── 4. Tighter content layout on phones ── */
+@media (max-width: 600px) {
+  .main { padding: 14px 14px calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .card { padding: 16px; }
+  .greet { margin-bottom: 14px; gap: 8px; }
+  .chip { font-size: 11px; padding: 5px 9px; box-shadow: 1px 1px 0 var(--ink); }
+  .mode-toggle button { font-size: 10px; padding: 5px 8px; letter-spacing: 0.04em; }
+}
+
+/* ── 5. Timer controls: ensure the inline margin-left is neutralised on small screens ── */
+@media (max-width: 600px) {
+  .controls { gap: 6px; }
+  .controls .btn:last-child { margin-left: 0 !important; }
+  .controls .btn.big { flex: 1 0 auto; min-width: 0; justify-content: center; }
+}
+
+/* ── 6. Auto-suggest banner ── */
+@media (max-width: 600px) {
+  .suggest { gap: 10px; padding: 12px 14px; }
+  .suggest-mark { width: 40px; height: 40px; font-size: 22px; border-radius: 12px; }
+  .suggest-title { font-size: 15px; }
+  .suggest-sub { display: none; }
+}
+
+/* ── 7. Task detail: stack title + pills vertically on narrow screens ── */
+@media (max-width: 600px) {
+  .task-detailed-head { flex-direction: column; gap: 8px; }
+  .task-detailed-meta { gap: 4px; }
+  .task-pill { font-size: 10px; }
+}
+
+/* ── 8. Overlays: reduce padding so content isn't cramped on small phones ── */
+@media (max-width: 600px) {
+  .hyper-overlay { padding: 24px; gap: 20px; }
+  .hyper-task { font-size: clamp(28px, 8vw, 48px); }
+  .hyper-time { font-size: clamp(64px, 16vw, 110px); }
+  .panic-overlay { padding: 24px; gap: 24px; }
+  .breath-wrap { width: 190px; height: 190px; }
+  .breath-orb { width: 95px; height: 95px; }
+  .panic-msg { font-size: 13px; }
+}
+
+/* ── 9. Disable textarea vertical resize on touch devices (the handle is unusable) ── */
+@media (max-width: 768px) {
+  .dump-area { resize: none; }
+  .parking-panel textarea { resize: none; }
+}
+
+/* ── 10. Modal: tighter on small screens ── */
+@media (max-width: 600px) {
+  .modal { padding: 18px; }
+  .modal-title { font-size: 18px; }
+  .modal-opt { padding: 10px 12px; }
+}
+
+/* ── 11. Parking lot & lang-toggle: honour iOS safe-area at bottom ── */
+@media (max-width: 600px) {
+  .parking { bottom: max(14px, calc(8px + env(safe-area-inset-bottom, 0px))); left: 14px; }
+  .lang-toggle { bottom: max(14px, calc(8px + env(safe-area-inset-bottom, 0px))); right: 14px; }
+}
+
+/* ── 12. Very small phones (≤ 380 px) ── */
+@media (max-width: 380px) {
+  .sidebar { padding: 6px 8px; gap: 4px; }
+  .sidebar .nav-item { padding: 6px 2px; }
+  .sidebar .nav-item .ic { font-size: 15px; }
+  /* Override the 56 px set in the ≤600 px block */
+  .time-display { font-size: 44px !important; }
+  .main { padding: 10px 12px calc(80px + env(safe-area-inset-bottom, 0px)); }
+  .card { padding: 12px; }
+  .greet h1 { font-size: 22px !important; }
+  .btn.big { padding: 11px 16px; font-size: 15px; }
+}
