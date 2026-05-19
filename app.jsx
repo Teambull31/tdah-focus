@@ -127,7 +127,7 @@ function SimpleTasks({ t, lang, tasks, activeId, setActive, toggle, addTask, onN
             onDragStart={(e) => { e.dataTransfer.setData("text/task-id", String(task.id)); onDragStart && onDragStart(task.id); }}
             onDragEnd={() => onDragEnd && onDragEnd()}
           >
-            <button className="check" onClick={() => toggle(task.id)} aria-label="toggle">{task.done ? "✓" : ""}</button>
+            <button className="check" onClick={() => { toggle(task.id); window.buzz && window.buzz(task.done ? 15 : [40, 30, 40]); }} aria-label={task.done ? (lang === "fr" ? "Décocher" : "Uncheck") : (lang === "fr" ? "Cocher" : "Check")} aria-pressed={task.done}>{task.done ? "✓" : ""}</button>
             <div className="task-body" onClick={() => setActive(task.id)} style={{ cursor: "pointer" }}>
               <div className="task-title">{task.title[lang]}</div>
               <div className="task-note">{task.note[lang]}</div>
@@ -502,10 +502,10 @@ function Sidebar({ t, lang, route, setRoute, streak, sessions }) {
       <div className="side-card">
         <h4>{t.streak}</h4>
         <div className="streak-row">
-          <span className="streak-num">12</span>
+          <span className="streak-num">{streak}</span>
           <span className="streak-flame">🔥</span>
         </div>
-        <div className="streak-label">{t.days} · {lang === "fr" ? "record 18" : "best 18"}</div>
+        <div className="streak-label">{t.days} · {lang === "fr" ? `record ${Math.max(18, streak)}` : `best ${Math.max(18, streak)}`}</div>
       </div>
       <div className="side-card" style={{ background: "var(--coral)", color: "white", borderColor: "var(--ink)" }}>
         <h4 style={{ color: "rgba(255,255,255,0.85)" }}>{lang === "fr" ? "Aujourd'hui" : "Today"}</h4>

@@ -12,14 +12,16 @@ function MoodEnergy({ t, mood, setMood, energy, setEnergy }) {
       <div className="card-sub">Check-in 30s</div>
       <div className="mood-row">
         {moods.map((m, i) => (
-          <button key={i} className={`mood-btn ${mood === i ? "selected" : ""}`} onClick={() => setMood(i)}>{m}</button>
+          <button key={i} className={`mood-btn ${mood === i ? "selected" : ""}`} onClick={() => { setMood(i); window.buzz && window.buzz(15); }}>{m}</button>
         ))}
       </div>
       <div style={{ height: 14 }} />
       <div style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--ink-mute)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.energy}</div>
-      <div className="energy-bar">
+      <div className="energy-bar" role="radiogroup" aria-label={t.energy}>
         {[0,1,2,3,4].map(i => (
-          <span key={i} className={i < energy ? "on" : ""} onClick={() => setEnergy(i+1)} />
+          <span key={i} role="radio" aria-checked={i < energy} tabIndex={0} className={i < energy ? "on" : ""}
+                onClick={() => { setEnergy(i+1); window.buzz && window.buzz(15); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setEnergy(i+1); window.buzz && window.buzz(15); }}} />
         ))}
       </div>
     </div>

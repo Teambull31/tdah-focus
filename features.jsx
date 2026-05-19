@@ -99,6 +99,25 @@ function ParkingLotFloater({ lang, onDrop }) {
 function NotFeelingItModal({ task, lang, onChoose, onClose }) {
   if (!task) return null;
   const t = task;
+  const modalRef = React.useRef(null);
+
+  // Focus trap + autofocus + Esc handler
+  React.useEffect(() => {
+    const root = modalRef.current;
+    if (!root) return;
+    const focusables = root.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    const onKey = (e) => {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last && last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first && first.focus(); }
+    };
+    root.addEventListener("keydown", onKey);
+    first && first.focus();
+    return () => root.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const opts = [
     { id: "two", icon: "⏱", label: lang === "fr" ? "Juste 2 minutes" : "Just 2 minutes", sub: lang === "fr" ? "Tu fais 2 min, tu peux arrêter après. Promis." : "Do 2 min, then stop. Promise." },
     { id: "split", icon: "🔪", label: lang === "fr" ? "Découper en plus petit" : "Break it smaller", sub: lang === "fr" ? "Trop gros pour ton cerveau là. On émince." : "Too big right now. Slice it up." },
@@ -107,9 +126,9 @@ function NotFeelingItModal({ task, lang, onChoose, onClose }) {
   ];
   return (
     <div className="modal-veil" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" ref={modalRef} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="nope-title">
         <div className="modal-pretitle">{lang === "fr" ? "Tâche évitée" : "Avoided task"}</div>
-        <div className="modal-title">« {t.title[lang]} »</div>
+        <div className="modal-title" id="nope-title">« {t.title[lang]} »</div>
         <div className="modal-sub">{lang === "fr" ? "Pas de jugement. Choisis ta sortie :" : "No judgement. Pick your exit:"}</div>
         <div className="modal-opts">
           {opts.map(o => (

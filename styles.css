@@ -1192,6 +1192,15 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .controls .btn.big { flex: 1 0 auto; min-width: 0; justify-content: center; }
 }
 
+/* ── 5b. Empêcher l'auto-zoom iOS sur inputs (déclenché sous 16px) + cibles tactiles ── */
+@media (max-width: 600px) {
+  input[type="text"], input[type="search"], input[type="time"],
+  input:not([type]), textarea, select { font-size: 16px; }
+  .check { width: 30px; height: 30px; min-width: 30px; }
+  .mood-btn { min-width: 44px; min-height: 44px; }
+  .energy-bar span { min-width: 28px; min-height: 28px; }
+}
+
 /* ── 6. Auto-suggest banner ── */
 @media (max-width: 600px) {
   .suggest { gap: 10px; padding: 12px 14px; }
