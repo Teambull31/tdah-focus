@@ -27,6 +27,14 @@
     if (actx.state === "suspended") actx.resume();
     return actx;
   };
+  // Pré-chauffe l'AudioContext au premier geste utilisateur pour éviter le lag du 1er son
+  window.warmAudio = () => {
+    try { ensureCtx(); } catch (e) {}
+  };
+  // Vibration helper (mobile uniquement)
+  window.buzz = (pattern) => {
+    try { if ("vibrate" in navigator) navigator.vibrate(pattern); } catch (e) {}
+  };
   const playTone = (freq, dur, when = 0, type = "sine", gain = 0.2) => {
     const ctx = ensureCtx();
     const t = ctx.currentTime + when;
