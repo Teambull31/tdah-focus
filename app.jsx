@@ -258,6 +258,19 @@ function HyperOverlay({ t, lang, current, remaining, running, pause, start, clos
   );
 }
 
+/* ───────── Dim overlay — anti-stim + OLED battery saver ───────── */
+
+function DimOverlay({ remaining, lang, current, onWake }) {
+  const [mm, ss] = fmt(remaining);
+  return (
+    <div className="dim-overlay" onClick={onWake}>
+      <div className="dim-time">{mm}<span className="dim-sep">:</span>{ss}</div>
+      {current && <div className="dim-task">{current.title[lang]}</div>}
+      <div className="dim-hint">{lang === "fr" ? "Appuie pour revenir" : "Tap to wake"}</div>
+    </div>
+  );
+}
+
 /* ───────── Sidebar ───────── */
 
 function Sidebar({ t, lang, route, setRoute, streak, sessions }) {
@@ -430,6 +443,45 @@ function App() {
     return () => clearInterval(i);
   }, [running, mode, pomoSec, breakSec, activeId, soundCue]);
 
+  // ── Wake Lock: keep screen on while timer runs ──
+  const wakeLockRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!running || !('wakeLock' in navigator)) return;
+    const acquire = async () => {
+      try { wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch(e) {}
+    };
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
+    acquire();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (wakeLockRef.current) { wakeLockRef.current.release().catch(() => {}); wakeLockRef.current = null; }
+    };
+  }, [running]);
+
+  // ── Auto-dim: réduit la stimulation et économise la batterie OLED ──
+  const [dimActive, setDimActive] = React.useState(false);
+  const dimTimerRef = React.useRef(null);
+  React.useEffect(() => {
+    const shouldDim = running && mode === "work" && !hyper && !panic;
+    if (!shouldDim) { setDimActive(false); clearTimeout(dimTimerRef.current); return; }
+    const schedule = () => {
+      clearTimeout(dimTimerRef.current);
+      setDimActive(false);
+      dimTimerRef.current = setTimeout(() => setDimActive(true), 60000);
+    };
+    schedule();
+    window.addEventListener('touchstart', schedule, { passive: true });
+    window.addEventListener('mousemove', schedule, { passive: true });
+    window.addEventListener('click', schedule, { passive: true });
+    return () => {
+      clearTimeout(dimTimerRef.current);
+      window.removeEventListener('touchstart', schedule);
+      window.removeEventListener('mousemove', schedule);
+      window.removeEventListener('click', schedule);
+    };
+  }, [running, mode, hyper, panic]);
+
   const playCue = (name) => {
     if (soundCue === "none") return;
     const fn = window.SOUNDS && window.SOUNDS[name];
@@ -567,6 +619,7 @@ function App() {
 
       {hyper && <HyperOverlay t={L} lang={lang} current={active} remaining={remaining} running={running} start={startT} pause={pauseT} close={() => setHyper(false)} />}
       {panic && <PanicOverlay lang={lang} onClose={() => setPanic(false)} />}
+      {dimActive && <DimOverlay remaining={remaining} lang={lang} current={active} onWake={() => setDimActive(false)} />}
       {nopeTask && <NotFeelingItModal task={nopeTask} lang={lang} onChoose={handleNopeChoice} onClose={() => setNopeTask(null)} />}
       {running && mode === "work" && !hyper && !panic && <ParkingLotFloater lang={lang} onDrop={addDump} />}
 
