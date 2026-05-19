@@ -1,0 +1,29 @@
+{
+  "name": "Cerveau.exe — TDAH Focus",
+  "short_name": "Cerveau.exe",
+  "description": "Timer de focus Pomodoro pour cerveaux TDAH",
+  "lang": "fr",
+  "start_url": "./Cerveau.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5f1ea",
+  "theme_color": "#2d5a27",
+  "categories": ["productivity", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
