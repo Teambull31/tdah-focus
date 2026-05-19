@@ -193,6 +193,19 @@ function BreakTips({ t, lang }) {
     setIdx(0);
   }, [cat]);
 
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   const colorByCat = { code: "var(--coral)", ai: "var(--plum)", money: "var(--moss)" };
 
   return (

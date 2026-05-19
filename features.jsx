@@ -219,6 +219,21 @@ function NowNextLater({ tasks, lang, activeId, setActive, toggle, lang_t }) {
 /* ───────── Annual heatmap ───────── */
 
 function AnnualHeatmap({ data, lang }) {
+  const heatmapRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const el = heatmapRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   // 53 weeks x 7 days grid
   const weeks = [];
   // pad start so first day of week is monday
@@ -235,7 +250,7 @@ function AnnualHeatmap({ data, lang }) {
     <div className="card">
       <div className="card-title">🗓 {lang === "fr" ? "365 derniers jours" : "Last 365 days"}</div>
       <div className="card-sub">{Math.round(total / 60)}h focus · {activeDays} {lang === "fr" ? "jours actifs" : "active days"}</div>
-      <div className="heatmap-wrap">
+      <div className="heatmap-wrap" ref={heatmapRef}>
         <div className="heatmap">
           {weeks.map((w, wi) => (
             <div key={wi} className="hm-week">
