@@ -1263,8 +1263,14 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
 
 /* ── 13. Corrections overflow & layout ── */
 @media (max-width: 600px) {
-  /* Contenir les ombres dans le viewport */
-  .shell { overflow-x: hidden; }
+  /* Filet de sécurité global — rien ne dépasse le viewport */
+  html, body, .app, .shell, .main { max-width: 100vw; overflow-x: hidden; }
+  .app, .shell, .main { width: 100%; }
+
+  /* Cartes & enfants ne doivent jamais dépasser leur parent */
+  .card, .timer-card, .suggest, .task-detailed, .break-panel { max-width: 100%; min-width: 0; }
+  .progress-wrap, .time-display, .duration-row, .controls,
+  .greet, .greet-meta, .mode-toggle { max-width: 100%; min-width: 0; }
 
   /* Réduire les ombres dures pour qu'elles ne dépassent pas l'écran :
      shadow-2 (6px) → 3px, ce qui laisse ~13px de marge visible */
@@ -1274,17 +1280,45 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
   .btn:hover       { box-shadow: 3px 3px 0 var(--ink); }
   .stim-high .card { box-shadow: 4px 4px 0 var(--ink); }
 
-  /* Padding horizontal légèrement plus grand (14 → 16 px) :
-     card shadow 3px + 16px padding = 13px de marge visible ✓ */
-  .main { padding-left: 16px; padding-right: 16px; }
+  /* Padding horizontal généreux : 18 px de chaque côté pour que les ombres
+     soient bien visibles sans que le contenu touche le bord */
+  .main { padding-left: 18px !important; padding-right: 18px !important; }
+
+  /* Réduire le padding interne des cartes pour gagner de la place */
+  .card { padding: 14px 14px; }
+  .timer-card { padding: 16px 14px; }
+
+  /* Time display : autoriser le wrap si vraiment serré + tail plus petit */
+  .time-display { flex-wrap: wrap; row-gap: 0; column-gap: 6px; }
+  .time-display .tail { font-size: 13px; margin-left: 4px; }
+  /* Sur très petits écrans, le clamp(64px, 10vw, 110px) → 10vw = 38px à 380px,
+     mais le min de 64px peut être trop. Forcer un peu plus petit. */
+  .time-display { font-size: clamp(48px, 16vw, 72px) !important; }
+  .time-display .tail { font-size: 12px !important; }
+
+  /* Controls : boutons compacts pour tenir sur une ligne */
+  .controls { gap: 6px; }
+  .controls .btn { padding: 9px 11px; font-size: 12px; flex-shrink: 1; min-width: 0; }
+  .controls .btn.big { padding: 13px 16px; font-size: 15px; flex: 1 1 100%; }
+  /* Sur mobile, le bouton "Mode Hyperfocus" devient juste 🔒 */
+  .controls .btn:not(.big) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Header salutation : empiler verticalement pour éviter le conflit
      avec le bouton FR/EN fixe en haut à droite */
   .greet { flex-direction: column; align-items: flex-start; gap: 10px; }
-  /* Laisser 72px à droite pour le bouton FR/EN (≈68px large + 12px right) */
-  .greet > div:first-child { padding-right: 72px; }
-  /* Chips en dessous de la salutation : affichage libre */
-  .greet-meta { flex-wrap: wrap; gap: 6px; align-items: center; }
+  .greet > div:first-child { padding-right: 72px; max-width: 100%; }
+  .greet h1 { word-break: break-word; max-width: 100%; }
+  .greet-meta { flex-wrap: wrap; gap: 6px; align-items: center; max-width: 100%; }
+
+  /* Progress bar : forcer une vraie marge à droite */
+  .progress-wrap { overflow: hidden; }
+
+  /* Duration row : autoriser le wrap, déjà fait mais on sécurise les chips */
+  .duration-row { flex-wrap: wrap; gap: 4px; }
+  .duration-chip { padding: 5px 10px; }
+
+  /* Sticker : reste dans le card (le card est borné, donc le sticker l'est aussi) */
+  .sticker { max-width: calc(100% - 12px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
 /* ── Dim overlay — écran sombre pendant le focus (économie OLED + anti-stim) ── */
@@ -1464,6 +1498,39 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
   }
   .mini-time { font-size: 44px; }
 }
+
+/* ─── Mode PiP (Document Picture-in-Picture) : plein-cadre dans la mini-fenêtre ─── */
+.pip-body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper, #fbf9f4);
+  font-family: "DM Sans", "Helvetica Neue", sans-serif;
+  overflow: hidden;
+}
+.pip-host {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.mini-timer.mini-pip {
+  position: static;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border-radius: var(--r-md);
+  box-shadow: none;
+  border: var(--border-w) solid var(--ink);
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.mini-timer.mini-pip .mini-time { font-size: 52px; }
+.mini-timer.mini-pip .mini-task { -webkit-line-clamp: 2; line-clamp: 2; }
 
 /* ═══════════════════════════════════════════════════════════
    TOAST (notif fugitive)

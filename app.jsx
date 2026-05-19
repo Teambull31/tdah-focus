@@ -318,20 +318,23 @@ function ShortcutsOverlay({ lang, onClose }) {
 
 /* ───────── Mini timer — vue compacte type Picture-in-Picture ───────── */
 
-function MiniTimer({ remaining, total, mode, current, running, lang, start, pause, skip, onRestore }) {
+function MiniTimer({ remaining, total, mode, current, running, lang, start, pause, skip, onRestore, inPip }) {
   const [mm, ss] = fmt(remaining);
   const pct = total ? ((total - remaining) / total) * 100 : 0;
   const isBreak = mode === "break";
   const ref = React.useRef(null);
   const [pos, setPos] = React.useState(() => {
+    if (inPip) return null;
     try { return JSON.parse(localStorage.getItem("cerveau:v1:miniPos")) || null; } catch (e) { return null; }
   });
 
   React.useEffect(() => {
+    if (inPip) return;
     if (pos) try { localStorage.setItem("cerveau:v1:miniPos", JSON.stringify(pos)); } catch (e) {}
-  }, [pos]);
+  }, [pos, inPip]);
 
   const onPointerDown = (e) => {
+    if (inPip) return; // En PiP, c'est l'OS qui déplace la fenêtre
     if (e.target.closest("button")) return;
     const el = ref.current;
     if (!el) return;
@@ -352,12 +355,12 @@ function MiniTimer({ remaining, total, mode, current, running, lang, start, paus
     window.addEventListener("pointerup", onUp);
   };
 
-  const style = pos ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" } : {};
+  const style = (pos && !inPip) ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto" } : {};
 
   return (
     <div
       ref={ref}
-      className={`mini-timer ${isBreak ? "mini-break" : ""} ${running ? "mini-on" : "mini-off"}`}
+      className={`mini-timer ${inPip ? "mini-pip" : ""} ${isBreak ? "mini-break" : ""} ${running ? "mini-on" : "mini-off"}`}
       style={style}
       onPointerDown={onPointerDown}
       role="dialog"
@@ -365,7 +368,7 @@ function MiniTimer({ remaining, total, mode, current, running, lang, start, paus
     >
       <div className="mini-head">
         <span className="mini-mode-lab">{isBreak ? "🫧" : "🎯"} {isBreak ? (lang === "fr" ? "pause" : "break") : "focus"}</span>
-        <button className="mini-x" onClick={onRestore} title={lang === "fr" ? "Restaurer (M)" : "Restore (M)"} aria-label="restore">↗</button>
+        {!inPip && <button className="mini-x" onClick={onRestore} title={lang === "fr" ? "Restaurer (M)" : "Restore (M)"} aria-label="restore">↗</button>}
       </div>
       <div className="mini-time" aria-live="polite">
         <span>{mm}</span><span className="mini-sep">:</span><span>{ss}</span>
@@ -380,7 +383,7 @@ function MiniTimer({ remaining, total, mode, current, running, lang, start, paus
         )}
         <button className="mini-btn" onClick={skip} aria-label={lang === "fr" ? "Passer" : "Skip"}>⏭</button>
       </div>
-      <div className="mini-drag-hint">{lang === "fr" ? "déplaçable" : "drag me"}</div>
+      {!inPip && <div className="mini-drag-hint">{lang === "fr" ? "déplaçable" : "drag me"}</div>}
     </div>
   );
 }
@@ -571,6 +574,7 @@ function App() {
   const [panic, setPanic] = React.useState(false);
   const [hyper, setHyper] = React.useState(false);
   const [mini, setMini] = React.useState(false);
+  const [pipWindow, setPipWindow] = React.useState(null);
   const [toast, setToast] = React.useState(null);
   const [confettiTrigger, setConfettiTrigger] = React.useState(0);
   const [timerPulse, setTimerPulse] = React.useState(false);
@@ -730,6 +734,67 @@ function App() {
   const total = mode === "work" ? pomoSec : breakSec;
 
   const startT = () => { setRunning(true); window.askNotif && window.askNotif(); window.warmAudio && window.warmAudio(); };
+
+  // ── Mini-window : ouvre une vraie petite fenêtre toujours-au-dessus (Document PiP)
+  // Fallback gracieux : mini-mode en page si la PiP n'est pas supportée
+  const openMini = React.useCallback(async () => {
+    if (pipWindow) { try { pipWindow.focus(); } catch (e) {} return; }
+    if ("documentPictureInPicture" in window) {
+      try {
+        const w = await window.documentPictureInPicture.requestWindow({ width: 300, height: 300 });
+        // Copie des stylesheets du document principal
+        Array.from(document.styleSheets).forEach((sheet) => {
+          try {
+            const css = Array.from(sheet.cssRules).map(r => r.cssText).join("\n");
+            const styleEl = w.document.createElement("style");
+            styleEl.textContent = css;
+            w.document.head.appendChild(styleEl);
+          } catch (e) {
+            if (sheet.href) {
+              const link = w.document.createElement("link");
+              link.rel = "stylesheet";
+              link.href = sheet.href;
+              w.document.head.appendChild(link);
+            }
+          }
+        });
+        // Police Google : on duplique le lien preconnect + stylesheet
+        const fontLink = document.querySelector('link[href*="fonts.googleapis"]');
+        if (fontLink) w.document.head.appendChild(fontLink.cloneNode(true));
+        // Body PiP : applique le thème + classes courantes pour héritage des --vars
+        w.document.body.className = "pip-body " + document.documentElement.className;
+        const appWrap = w.document.createElement("div");
+        appWrap.className = themeCls + " pip-host";
+        w.document.body.appendChild(appWrap);
+        // Cleanup quand la fenêtre PiP se ferme
+        w.addEventListener("pagehide", () => setPipWindow(null));
+        setPipWindow(w);
+        showToast("↘", lang === "fr" ? "Mini-fenêtre ouverte" : "Mini window opened");
+      } catch (e) {
+        showToast("⚠", lang === "fr" ? "PiP refusé, mini en page" : "PiP denied, in-page mini");
+        setMini(true);
+      }
+    } else {
+      // Pas de PiP : on retombe sur le mini-mode en page (CSS)
+      showToast("ℹ", lang === "fr" ? "Mini en page (PiP non supporté)" : "In-page mini (no PiP)");
+      setMini(true);
+    }
+  }, [pipWindow, lang, showToast]);
+  // Note: themeCls référencé via closure. Le PiP est créé une fois ;
+  // un changement de thème ultérieur ne sera pas reflété dans la fenêtre PiP.
+
+  const closeMini = React.useCallback(() => {
+    if (pipWindow) { try { pipWindow.close(); } catch (e) {} setPipWindow(null); }
+    setMini(false);
+  }, [pipWindow]);
+
+  // Synchronise le thème de la fenêtre PiP avec le thème de l'app principale
+  React.useEffect(() => {
+    if (!pipWindow) return;
+    const host = pipWindow.document && pipWindow.document.querySelector(".pip-host");
+    const themeClsCurrent = `app theme-${t.dark ? "dark" : "light"} stim-${t.stim}`;
+    if (host) host.className = themeClsCurrent + " pip-host";
+  }, [pipWindow, t.dark, t.stim]);
   const pauseT = () => setRunning(false);
   const stopT = () => { setRunning(false); setMode("work"); setRemaining(pomoSec); };
   const skipT = () => {
@@ -759,9 +824,9 @@ function App() {
   React.useEffect(() => {
     const cls = document.body.classList;
     if (hyper) cls.add("focus-deep"); else cls.remove("focus-deep");
-    if (mini) cls.add("mini-active"); else cls.remove("mini-active");
+    if (mini || pipWindow) cls.add("mini-active"); else cls.remove("mini-active");
     return () => { cls.remove("focus-deep"); cls.remove("mini-active"); };
-  }, [hyper, mini]);
+  }, [hyper, mini, pipWindow]);
 
   // ── Titre d'onglet dynamique (visible même quand l'onglet est en arrière-plan) ──
   React.useEffect(() => {
@@ -790,6 +855,7 @@ function App() {
         if (panic) { setPanic(false); return; }
         if (dimActive) { setDimActive(false); return; }
         if (nopeTask) { setNopeTask(null); return; }
+        if (pipWindow) { closeMini(); return; }
         if (mini) { setMini(false); return; }
       }
       if (isTyping(e)) return;
@@ -805,14 +871,15 @@ function App() {
         window.location.hash = nextRoute;
         setRoute(nextRoute);
       } else if (e.key.toLowerCase() === "m") {
-        setMini(m => !m);
+        if (pipWindow || mini) closeMini();
+        else openMini();
       } else if (e.key.toLowerCase() === "h" && !hyper) {
         setHyper(true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [running, hyper, panic, dimActive, nopeTask, mini, route, showShortcuts]);
+  }, [running, hyper, panic, dimActive, nopeTask, mini, route, showShortcuts, pipWindow, openMini, closeMini]);
 
   // Drop task on timer → set as active and start
   const handleDropTask = (id) => {
@@ -885,7 +952,7 @@ function App() {
                   {mode === "break" ? (
                     <>
                       <TimerCard t={L} lang={lang} current={active} mode={mode} remaining={remaining} total={total} running={running}
-                        start={startT} pause={pauseT} stop={stopT} skip={skipT} openHyper={() => setHyper(true)} openMini={() => setMini(true)}
+                        start={startT} pause={pauseT} stop={stopT} skip={skipT} openHyper={() => setHyper(true)} openMini={openMini}
                         pomoLength={t.pomoLength} breakLength={t.breakLength}
                         setPomoLength={(v) => setTweak("pomoLength", v)} setBreakLength={(v) => setTweak("breakLength", v)}
                         onDropTask={handleDropTask} draggingId={draggingId} pulse={timerPulse} />
@@ -898,7 +965,7 @@ function App() {
                   ) : (
                     <>
                       <TimerCard t={L} lang={lang} current={active} mode={mode} remaining={remaining} total={total} running={running}
-                        start={startT} pause={pauseT} stop={stopT} skip={skipT} openHyper={() => setHyper(true)} openMini={() => setMini(true)}
+                        start={startT} pause={pauseT} stop={stopT} skip={skipT} openHyper={() => setHyper(true)} openMini={openMini}
                         pomoLength={t.pomoLength} breakLength={t.breakLength}
                         setPomoLength={(v) => setTweak("pomoLength", v)} setBreakLength={(v) => setTweak("breakLength", v)}
                         onDropTask={handleDropTask} draggingId={draggingId} pulse={timerPulse} />
@@ -938,8 +1005,13 @@ function App() {
       {dimActive && <DimOverlay remaining={remaining} lang={lang} current={active} onWake={() => setDimActive(false)} />}
       {nopeTask && <NotFeelingItModal task={nopeTask} lang={lang} onChoose={handleNopeChoice} onClose={() => setNopeTask(null)} />}
       {running && mode === "work" && !hyper && !panic && !mini && <ParkingLotFloater lang={lang} onDrop={addDump} />}
-      {mini && <MiniTimer remaining={remaining} total={total} mode={mode} current={active} running={running} lang={lang}
+      {mini && !pipWindow && <MiniTimer remaining={remaining} total={total} mode={mode} current={active} running={running} lang={lang}
                           start={startT} pause={pauseT} skip={skipT} onRestore={() => setMini(false)} />}
+      {pipWindow && pipWindow.document && pipWindow.document.querySelector(".pip-host") && ReactDOM.createPortal(
+        <MiniTimer remaining={remaining} total={total} mode={mode} current={active} running={running} lang={lang}
+                   start={startT} pause={pauseT} skip={skipT} onRestore={closeMini} inPip />,
+        pipWindow.document.querySelector(".pip-host")
+      )}
       <Confetti trigger={confettiTrigger} reducedMotion={reducedMotion} />
       <Toast message={toast} onDismiss={() => setToast(null)} />
       {showShortcuts && <ShortcutsOverlay lang={lang} onClose={() => setShowShortcuts(false)} />}
