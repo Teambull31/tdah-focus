@@ -140,6 +140,12 @@ const __TWEAKS_STYLE = `
   .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
 
   .twk-chips{display:flex;gap:6px}
+  @media(max-width:480px){
+    .twk-panel{width:calc(100vw - 32px) !important;right:16px !important;
+      bottom:max(16px,env(safe-area-inset-bottom,16px)) !important}
+    .twk-x{width:32px;height:32px;font-size:16px;border-radius:8px}
+    .twk-body{padding:2px 12px 12px}
+  }
   .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
     padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
     box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);
