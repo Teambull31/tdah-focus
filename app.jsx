@@ -612,8 +612,20 @@ function App() {
   const toggleSubtask = (tid, sid) => setTasks(ts => ts.map(x => x.id !== tid ? x : { ...x, subtasks: x.subtasks.map(s => s.id !== sid ? s : { ...s, done: !s.done }) }));
   const addTask = (title) => {
     const id = Date.now();
-    setTasks(ts => [...ts, { id, title: { fr: title, en: title }, note: { fr: "fraîchement ajoutée", en: "fresh add" }, estimate: 15, done: false, priority: "today", energy: "medium", subtasks: [], pomos: 0, actualMin: 0 }]);
+    setTasks(ts => [...ts, { id, title: { fr: title, en: title }, note: { fr: "", en: "" }, estimate: 25, done: false, priority: "today", energy: "medium", subtasks: [], pomos: 0, actualMin: 0 }]);
   };
+  const deleteTask = (id) => setTasks(ts => ts.filter(x => x.id !== id));
+  const updateTask = (id, patch) => setTasks(ts => ts.map(x => x.id !== id ? x : {
+    ...x, ...patch,
+    title: patch.title ? { ...x.title, ...patch.title } : x.title,
+    note:  patch.note  ? { ...x.note,  ...patch.note  } : x.note,
+  }));
+  const addSubtask = (tid, title) => setTasks(ts => ts.map(x => x.id !== tid ? x : {
+    ...x, subtasks: [...x.subtasks, { id: Date.now(), title: { fr: title, en: title }, done: false }],
+  }));
+  const deleteSubtask = (tid, sid) => setTasks(ts => ts.map(x => x.id !== tid ? x : {
+    ...x, subtasks: x.subtasks.filter(s => s.id !== sid),
+  }));
   const addDump = (text) => setDumps(d => [{ fr: text, en: text, time: "just now" }, ...d]);
 
   // Handle "I don't feel like it" choice
@@ -1028,7 +1040,7 @@ function App() {
             </>
           )}
 
-          {route === "tasks" && <TasksDetailed t={L} lang={lang} tasks={tasks} toggle={toggleTask} toggleSubtask={toggleSubtask} />}
+          {route === "tasks" && <TasksDetailed t={L} lang={lang} tasks={tasks} toggle={toggleTask} toggleSubtask={toggleSubtask} addTask={addTask} deleteTask={deleteTask} updateTask={updateTask} addSubtask={addSubtask} deleteSubtask={deleteSubtask} />}
           {route === "braindump" && <BrainDumpView t={L} lang={lang} items={dumps} onAdd={addDump} />}
           {route === "routines" && <RoutinesView t={L} lang={lang}
             morningSteps={morningSteps} setMorningSteps={setMorningSteps}

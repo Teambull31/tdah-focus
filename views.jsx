@@ -202,59 +202,257 @@ function StatsCard({ t }) {
 
 /* ─────────────────── Tasks detailed view ─────────────────── */
 
-function TasksDetailed({ t, lang, tasks, toggle, toggleSubtask }) {
+/* ── Ligne de sous-tâche éditable ── */
+function SubtaskRow({ s, lang, onToggle, onDelete }) {
   return (
-    <div>
-      <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: "-0.02em", marginBottom: 4 }}>{t.tasksDetailed}</h2>
-      <div style={{ color: "var(--ink-mute)", fontSize: 13, marginBottom: 20 }}>Décompose. Coche. Souffle.</div>
-      {tasks.map(task => {
-        const done = task.subtasks.filter(s => s.done).length;
-        const total = task.subtasks.length;
-        const pct = total ? (done / total) * 100 : (task.done ? 100 : 0);
-        return (
-          <div key={task.id} className="task-detailed">
-            <div className="task-detailed-head">
-              <div>
-                <div className="task-detailed-title">{task.title[lang]}</div>
-                <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", marginTop: 4 }}>{task.note[lang]}</div>
-              </div>
-              <div className="task-detailed-meta">
-                <span className={`task-pill ${task.priority === "now" ? "now" : task.priority === "quick" ? "quick" : ""}`}>{task.priority}</span>
-                <span className="task-pill">{task.estimate}min {lang === "fr" ? "estimé" : "est."}</span>
-                {(task.actualMin || 0) > 0 && (
-                  <span className="task-pill" style={{ background: "var(--plum)", color: "white", borderColor: "var(--plum)" }}>
-                    {task.actualMin}min {lang === "fr" ? "réel" : "real"}
-                  </span>
-                )}
-                {(task.pomos || 0) > 0 && (
-                  <span className="task-pill" style={{ background: "var(--coral)", color: "white", borderColor: "var(--coral)" }}>
-                    🍅 × {task.pomos}
-                  </span>
-                )}
-                <span className="task-pill">⚡ {task.energy}</span>
-              </div>
-            </div>
-            {total > 0 && (
-              <div className="subtask-progress">
-                <span className="lab">{done}/{total}</span>
-                <div className="bar"><div className="fill" style={{ width: pct + "%" }} /></div>
-                <span className="lab">{Math.round(pct)}%</span>
-              </div>
-            )}
-            <div>
-              {task.subtasks.map(s => (
-                <div key={s.id} className={`subtask ${s.done ? "done" : ""}`}>
-                  <button className="mini-check" onClick={() => toggleSubtask(task.id, s.id)}>{s.done ? "✓" : ""}</button>
-                  <span>{s.title[lang]}</span>
-                </div>
-              ))}
-              {total === 0 && (
-                <div style={{ fontSize: 12, color: "var(--ink-mute)", fontStyle: "italic", padding: "4px 0" }}>Pas de sous-tâches — c'est une tâche d'un bloc.</div>
-              )}
-            </div>
+    <div className={`subtask ${s.done ? "done" : ""}`} style={{ justifyContent: "space-between" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+        <button className="mini-check" onClick={onToggle}>{s.done ? "✓" : ""}</button>
+        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title[lang]}</span>
+      </div>
+      <button onClick={onDelete} style={{ fontSize: 14, color: "var(--ink-mute)", padding: "0 4px", flexShrink: 0 }} title="Supprimer">×</button>
+    </div>
+  );
+}
+
+/* ── Carte tâche éditable ── */
+function TaskDetailCard({ task, lang, toggle, deleteTask, updateTask, toggleSubtask, addSubtask, deleteSubtask }) {
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  const [editingNote, setEditingNote]   = React.useState(false);
+  const [titleVal, setTitleVal]         = React.useState(task.title[lang]);
+  const [noteVal, setNoteVal]           = React.useState(task.note[lang] || "");
+  const [addingSub, setAddingSub]       = React.useState(false);
+  const [subVal, setSubVal]             = React.useState("");
+  const titleRef = React.useRef(null);
+  const noteRef  = React.useRef(null);
+
+  React.useEffect(() => { if (editingTitle && titleRef.current) titleRef.current.select(); }, [editingTitle]);
+  React.useEffect(() => { if (editingNote  && noteRef.current)  noteRef.current.focus();  }, [editingNote]);
+
+  const saveTitle = () => {
+    if (titleVal.trim()) updateTask({ title: { fr: titleVal.trim(), en: titleVal.trim() } });
+    else setTitleVal(task.title[lang]);
+    setEditingTitle(false);
+  };
+  const saveNote = () => {
+    updateTask({ note: { fr: noteVal, en: noteVal } });
+    setEditingNote(false);
+  };
+  const commitSub = () => {
+    if (subVal.trim()) addSubtask(subVal.trim());
+    setSubVal(""); setAddingSub(false);
+  };
+
+  const PRIORITIES = ["now", "today", "later"];
+  const PRIORITY_LABELS = { now: "🔴 Maintenant", today: "🟡 Aujourd'hui", later: "⚪ Plus tard" };
+
+  const done  = task.subtasks.filter(s => s.done).length;
+  const total = task.subtasks.length;
+  const pct   = total ? (done / total * 100) : (task.done ? 100 : 0);
+
+  return (
+    <div className={`task-detailed ${task.done ? "done" : ""}`} style={{ opacity: task.done ? 0.6 : 1 }}>
+      {/* En-tête : checkbox + titre + bouton supprimer */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+        <button className="check" onClick={toggle} style={{ flexShrink: 0, marginTop: 2 }}>{task.done ? "✓" : ""}</button>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {editingTitle ? (
+            <input
+              ref={titleRef}
+              className="task-detailed-title"
+              style={{ width: "100%", background: "transparent", borderBottom: "2px solid var(--coral)", paddingBottom: 2, textDecoration: "none" }}
+              value={titleVal}
+              onChange={e => setTitleVal(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={e => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") { setTitleVal(task.title[lang]); setEditingTitle(false); } }}
+            />
+          ) : (
+            <div
+              className="task-detailed-title"
+              style={{ cursor: "text", textDecoration: task.done ? "line-through" : "none" }}
+              onClick={() => { if (!task.done) { setTitleVal(task.title[lang]); setEditingTitle(true); } }}
+              title={lang === "fr" ? "Cliquer pour modifier" : "Click to edit"}
+            >{task.title[lang]}</div>
+          )}
+        </div>
+        <button onClick={deleteTask} title={lang === "fr" ? "Supprimer" : "Delete"}
+          style={{ flexShrink: 0, fontSize: 16, color: "var(--ink-mute)", padding: "0 4px", lineHeight: 1 }}>×</button>
+      </div>
+
+      {/* Note / description */}
+      <div style={{ paddingLeft: 36, marginBottom: 10 }}>
+        {editingNote ? (
+          <textarea
+            ref={noteRef}
+            style={{ width: "100%", background: "var(--cream-2)", border: "1.5px solid var(--ink)", borderRadius: 8, padding: "6px 8px", fontSize: 12, resize: "vertical", minHeight: 56 }}
+            value={noteVal}
+            onChange={e => setNoteVal(e.target.value)}
+            onBlur={saveNote}
+            onKeyDown={e => { if (e.key === "Escape") { setNoteVal(task.note[lang] || ""); setEditingNote(false); } }}
+            placeholder={lang === "fr" ? "Note…" : "Note…"}
+          />
+        ) : (
+          <div
+            onClick={() => { setNoteVal(task.note[lang] || ""); setEditingNote(true); }}
+            style={{ fontSize: 12, color: task.note[lang] ? "var(--ink-mute)" : "var(--ink-mute)", fontStyle: "italic", cursor: "text", minHeight: 18 }}
+          >{task.note[lang] || (lang === "fr" ? "+ ajouter une note…" : "+ add a note…")}</div>
+        )}
+      </div>
+
+      {/* Pills : priorité + stats */}
+      <div style={{ paddingLeft: 36, display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+        {/* Sélecteur de priorité */}
+        <select
+          value={task.priority}
+          onChange={e => updateTask({ priority: e.target.value })}
+          style={{ fontSize: 11, fontFamily: "var(--font-mono)", padding: "3px 7px", borderRadius: 999, border: "1.5px solid var(--ink)", background: task.priority === "now" ? "var(--coral)" : task.priority === "quick" ? "var(--moss)" : "var(--paper)", color: (task.priority === "now" || task.priority === "quick") ? "white" : "var(--ink)", cursor: "pointer", fontWeight: 700 }}
+        >
+          {PRIORITIES.map(p => <option key={p} value={p}>{PRIORITY_LABELS[p]}</option>)}
+        </select>
+        {(task.actualMin || 0) > 0 && (
+          <span className="task-pill" style={{ background: "var(--plum)", color: "white", borderColor: "var(--plum)" }}>
+            {task.actualMin}min {lang === "fr" ? "réel" : "real"}
+          </span>
+        )}
+        {(task.pomos || 0) > 0 && (
+          <span className="task-pill" style={{ background: "var(--coral)", color: "white", borderColor: "var(--coral)" }}>
+            🍅 × {task.pomos}
+          </span>
+        )}
+      </div>
+
+      {/* Progression sous-tâches */}
+      {total > 0 && (
+        <div className="subtask-progress" style={{ paddingLeft: 36 }}>
+          <span className="lab">{done}/{total}</span>
+          <div className="bar"><div className="fill" style={{ width: pct + "%" }} /></div>
+          <span className="lab">{Math.round(pct)}%</span>
+        </div>
+      )}
+
+      {/* Liste sous-tâches */}
+      <div style={{ paddingLeft: 36 }}>
+        {task.subtasks.map(s => (
+          <SubtaskRow key={s.id} s={s} lang={lang}
+            onToggle={() => toggleSubtask(s.id)}
+            onDelete={() => deleteSubtask(s.id)}
+          />
+        ))}
+
+        {/* Formulaire ajout sous-tâche */}
+        {addingSub ? (
+          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+            <input
+              autoFocus
+              style={{ flex: 1, background: "var(--cream-2)", border: "1.5px solid var(--ink)", borderRadius: 8, padding: "5px 8px", fontSize: 13 }}
+              placeholder={lang === "fr" ? "Nom de l'étape…" : "Step name…"}
+              value={subVal}
+              onChange={e => setSubVal(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") commitSub(); if (e.key === "Escape") { setSubVal(""); setAddingSub(false); } }}
+            />
+            <button className="btn primary" style={{ padding: "5px 12px", fontSize: 12 }} onClick={commitSub}>+</button>
+            <button className="btn" style={{ padding: "5px 10px", fontSize: 12 }} onClick={() => { setSubVal(""); setAddingSub(false); }}>✕</button>
           </div>
-        );
-      })}
+        ) : (
+          <button
+            onClick={() => setAddingSub(true)}
+            style={{ fontSize: 12, color: "var(--ink-mute)", marginTop: 6, padding: "2px 0", textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+          >+ {lang === "fr" ? "ajouter une étape" : "add a step"}</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Vue Tâches détaillées ── */
+function TasksDetailed({ t, lang, tasks, toggle, toggleSubtask, addTask, deleteTask, updateTask, addSubtask, deleteSubtask }) {
+  const [filter, setFilter]   = React.useState("active");
+  const [newTitle, setNewTitle] = React.useState("");
+  const [adding, setAdding]   = React.useState(false);
+  const inputRef = React.useRef(null);
+
+  React.useEffect(() => { if (adding && inputRef.current) inputRef.current.focus(); }, [adding]);
+
+  const commit = () => {
+    if (newTitle.trim()) { addTask(newTitle.trim()); setNewTitle(""); }
+    setAdding(false);
+  };
+
+  const filters = [
+    { key: "active", label: lang === "fr" ? "En cours" : "Active" },
+    { key: "all",    label: lang === "fr" ? "Toutes"   : "All" },
+    { key: "done",   label: lang === "fr" ? "Terminées" : "Done" },
+  ];
+  const visible = tasks.filter(x =>
+    filter === "active" ? !x.done :
+    filter === "done"   ?  x.done : true
+  );
+
+  return (
+    <div style={{ maxWidth: 760 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, letterSpacing: "-0.02em", marginBottom: 4 }}>{t.tasksDetailed}</h2>
+          <div style={{ color: "var(--ink-mute)", fontSize: 13 }}>
+            {tasks.filter(x => !x.done).length} {lang === "fr" ? "en cours" : "active"} · {tasks.filter(x => x.done).length} ✓
+          </div>
+        </div>
+        <button className="btn primary" onClick={() => setAdding(true)} style={{ flexShrink: 0 }}>
+          + {lang === "fr" ? "Nouvelle tâche" : "New task"}
+        </button>
+      </div>
+
+      {/* Formulaire nouvelle tâche */}
+      {adding && (
+        <div className="card" style={{ marginBottom: 16, padding: "14px 16px" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              ref={inputRef}
+              style={{ flex: 1, background: "var(--cream-2)", border: "1.5px solid var(--ink)", borderRadius: 10, padding: "9px 12px", fontSize: 15, fontFamily: "var(--font-display)", fontWeight: 600 }}
+              placeholder={lang === "fr" ? "Nom de la tâche…" : "Task name…"}
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setNewTitle(""); setAdding(false); } }}
+            />
+            <button className="btn primary" onClick={commit} style={{ flexShrink: 0 }}>
+              {lang === "fr" ? "Ajouter" : "Add"}
+            </button>
+            <button className="btn" onClick={() => { setNewTitle(""); setAdding(false); }} style={{ flexShrink: 0 }}>✕</button>
+          </div>
+        </div>
+      )}
+
+      {/* Filtres */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        {filters.map(f => (
+          <button key={f.key} className={`chip ${filter === f.key ? "coral" : ""}`}
+            onClick={() => setFilter(f.key)} style={{ cursor: "pointer" }}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Liste */}
+      {visible.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--ink-mute)", fontSize: 14 }}>
+          {filter === "done" ? (lang === "fr" ? "Aucune tâche terminée" : "No completed tasks") :
+           filter === "active" ? (lang === "fr" ? "Aucune tâche en cours — bien joué !" : "No active tasks — well done!") :
+           (lang === "fr" ? "Aucune tâche" : "No tasks")}
+        </div>
+      ) : visible.map(task => (
+        <TaskDetailCard
+          key={task.id}
+          task={task}
+          lang={lang}
+          toggle={() => toggle(task.id)}
+          deleteTask={() => deleteTask(task.id)}
+          updateTask={(patch) => updateTask(task.id, patch)}
+          toggleSubtask={(sid) => toggleSubtask(task.id, sid)}
+          addSubtask={(title) => addSubtask(task.id, title)}
+          deleteSubtask={(sid) => deleteSubtask(task.id, sid)}
+        />
+      ))}
     </div>
   );
 }
