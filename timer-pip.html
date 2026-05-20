@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>⏱ Cerveau.exe</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=DM+Sans:wght@400;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:    #2d3b2d;
+    --text:  #f5f1ea;
+    --mute:  rgba(245,241,234,0.5);
+    --coral: #e87560;
+    --sky:   #7c9eb2;
+    --line:  rgba(245,241,234,0.15);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 100vh;
+    padding: 20px 16px;
+    gap: 10px;
+  }
+
+  .mode-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1.5px solid var(--coral);
+    color: var(--coral);
+  }
+  .mode-badge.break { border-color: var(--sky); color: var(--sky); }
+
+  .time-display {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(52px, 20vw, 72px);
+    font-weight: 700;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+
+  .task-name {
+    font-size: 12px;
+    color: var(--mute);
+    text-align: center;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .progress-bar {
+    width: 100%;
+    max-width: 220px;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--coral);
+    border-radius: 2px;
+    transition: width 0.9s linear;
+  }
+  .progress-fill.break { background: var(--sky); }
+
+  .controls {
+    display: flex; gap: 8px; margin-top: 4px;
+  }
+  .btn {
+    padding: 7px 16px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .btn:hover { background: rgba(245,241,234,0.08); border-color: rgba(245,241,234,0.35); }
+  .btn.primary { background: var(--coral); border-color: var(--coral); color: white; }
+  .btn.primary.break { background: var(--sky); border-color: var(--sky); }
+
+  .hint {
+    font-size: 10px;
+    color: rgba(245,241,234,0.2);
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  /* Pas de données : état d'attente */
+  .waiting { opacity: 0.35; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mode-badge" id="mode">● FOCUS</div>
+  <div class="time-display" id="time">--:--</div>
+  <div class="task-name" id="task">En attente de l'app…</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="bar" style="width:0%"></div>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="btn-toggle" onclick="send('toggle')">▶ Démarrer</button>
+    <button class="btn" onclick="send('stop')">■ Stop</button>
+  </div>
+  <div class="hint">Cerveau.exe — gardez cette fenêtre ouverte</div>
+</div>
+
+<script>
+  const KEY_STATE = 'cerveau:v1:pip:state';
+  const KEY_CMD   = 'cerveau:v1:pip:cmd';
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function fmt(secs) {
+    if (secs == null || isNaN(secs)) return '--:--';
+    const s = Math.max(0, Math.round(secs));
+    return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
+  }
+
+  function send(cmd) {
+    try { localStorage.setItem(KEY_CMD, JSON.stringify({ cmd, ts: Date.now() })); }
+    catch(e) {}
+  }
+
+  function render(state) {
+    const isBreak = state && state.mode === 'break';
+    const running = state && state.running;
+    const rem     = state ? state.remaining : null;
+    const total   = state ? state.total : null;
+    const pct     = (total && rem != null) ? ((total - rem) / total * 100) : 0;
+
+    document.getElementById('time').textContent = fmt(rem);
+    document.getElementById('task').textContent = (state && state.current) || (state ? 'Aucune tâche sélectionnée' : 'En attente de l\'app…');
+    document.getElementById('bar').style.width  = pct + '%';
+    document.getElementById('bar').className    = 'progress-fill' + (isBreak ? ' break' : '');
+
+    const modeEl = document.getElementById('mode');
+    modeEl.textContent  = isBreak ? '● PAUSE' : '● FOCUS';
+    modeEl.className    = 'mode-badge' + (isBreak ? ' break' : '');
+
+    const btnToggle = document.getElementById('btn-toggle');
+    btnToggle.textContent = running ? '⏸ Pause' : '▶ Démarrer';
+    btnToggle.className   = 'btn primary' + (isBreak ? ' break' : '');
+
+    document.title = state ? fmt(rem) + ' — Cerveau.exe' : '⏱ Cerveau.exe';
+  }
+
+  function readAndRender() {
+    try {
+      const raw = localStorage.getItem(KEY_STATE);
+      render(raw ? JSON.parse(raw) : null);
+    } catch(e) { render(null); }
+  }
+
+  // Mise à jour instantanée quand l'app écrit dans localStorage
+  window.addEventListener('storage', function(e) {
+    if (e.key === KEY_STATE) readAndRender();
+  });
+
+  // Polling de secours toutes les 500ms (ex: même onglet, ou storage event raté)
+  setInterval(readAndRender, 500);
+  readAndRender();
+</script>
+</body>
+</html>

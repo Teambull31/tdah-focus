@@ -1,8 +1,9 @@
 // Service Worker — Cerveau.exe PWA
-const CACHE = 'cerveau-v2';
+const CACHE = 'cerveau-v3';
 
 const LOCAL_ASSETS = [
   './Cerveau.html',
+  './timer-pip.html',
   './styles.css',
   './helpers.js',
   './i18n.js',

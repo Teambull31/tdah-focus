@@ -686,6 +686,33 @@ function App() {
     return () => clearInterval(i);
   }, [running, mode, pomoSec, breakSec, activeId, soundCue]);
 
+  // ── Export état timer → timer-pip.html via localStorage ──
+  React.useEffect(() => {
+    const active = tasks.find(x => x.id === activeId);
+    try {
+      localStorage.setItem('cerveau:v1:pip:state', JSON.stringify({
+        remaining, total, mode, running,
+        current: active ? (active.title[lang] || active.title.fr) : null,
+        ts: Date.now(),
+      }));
+    } catch(e) {}
+  }, [remaining, mode, running, activeId, lang]);
+
+  // ── Écoute commandes depuis timer-pip.html ──
+  React.useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== 'cerveau:v1:pip:cmd') return;
+      try {
+        const { cmd } = JSON.parse(e.newValue || '{}');
+        if (cmd === 'toggle') setRunning(r => !r);
+        else if (cmd === 'stop') { setRunning(false); setMode('work'); setRemaining(pomoSec); }
+        else if (cmd === 'skip') setMode(m => m === 'work' ? 'break' : 'work');
+      } catch(e2) {}
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [pomoSec]);
+
   // ── Wake Lock: keep screen on while timer runs ──
   const wakeLockRef = React.useRef(null);
   React.useEffect(() => {
@@ -775,9 +802,19 @@ function App() {
         setMini(true);
       }
     } else {
-      // Pas de PiP : on retombe sur le mini-mode en page (CSS)
-      showToast("ℹ", lang === "fr" ? "Mini en page (PiP non supporté)" : "In-page mini (no PiP)");
-      setMini(true);
+      // Pas de Document PiP : ouvre timer-pip.html dans un vrai popup fenêtre
+      const pip = window.open(
+        './timer-pip.html',
+        'cerveau-timer',
+        'width=320,height=260,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no'
+      );
+      if (pip) {
+        showToast("↗", lang === "fr" ? "Fenêtre timer ouverte" : "Timer window opened");
+      } else {
+        // Popup bloqué → mini en page
+        showToast("ℹ", lang === "fr" ? "Mini en page (popups bloqués)" : "In-page mini (popups blocked)");
+        setMini(true);
+      }
     }
   }, [pipWindow, lang, showToast]);
   // Note: themeCls référencé via closure. Le PiP est créé une fois ;
