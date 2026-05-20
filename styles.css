@@ -190,7 +190,7 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
   gap: 20px;
 }
 @media (max-width: 1080px) {
-  .shell { grid-template-columns: 1fr; }
+  .shell { grid-template-columns: minmax(0, 1fr); }
   .sidebar {
     position: sticky; top: 0; z-index: 50;
     height: auto;
@@ -209,7 +209,7 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
   .sidebar .nav-item.active span:not(.ic) { display: inline; }
   .sidebar .side-card { display: none; }
   .sidebar > div:last-child { display: none; }
-  .grid { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
   .main { padding: 20px; }
 }
 @media (max-width: 600px) {
