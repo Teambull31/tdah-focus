@@ -1090,9 +1090,9 @@ input, textarea { font: inherit; color: inherit; background: none; border: none;
    ═══════════════════════════════════════════════════════════ */
 
 /* ── 1. Global touch & scroll polish ── */
-html { overflow-x: hidden; }
+html { /* pas de overflow-x:hidden ici — ça casse le scroll tactile iOS */ }
 body {
-  overflow-x: hidden;
+  /* overflow-x:hidden sur body désactive le scroll sur iOS Safari — à éviter */
   overscroll-behavior-y: none;
   /* Reserve space for iOS home indicator at the bottom */
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -1263,8 +1263,8 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
 
 /* ── 13. Corrections overflow & clipping (mobile) ── */
 @media (max-width: 600px) {
-  /* Filet de sécurité global — rien ne dépasse le viewport */
-  html, body { overflow-x: hidden; max-width: 100vw; }
+  /* Filet de sécurité global — overflow-x:hidden uniquement sur les conteneurs
+     internes, jamais sur html/body (casse le scroll tactile sur iOS Safari) */
   .app, .shell, .main { max-width: 100vw; overflow-x: hidden; width: 100%; box-sizing: border-box; }
 
   /* Cartes & enfants ne doivent jamais dépasser leur parent */
