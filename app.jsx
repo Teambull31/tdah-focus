@@ -318,7 +318,7 @@ function ShortcutsOverlay({ lang, onClose }) {
 
 /* ───────── Mini timer — vue compacte type Picture-in-Picture ───────── */
 
-function MiniTimer({ remaining, total, mode, current, running, lang, start, pause, skip, onRestore, inPip }) {
+function MiniTimer({ remaining, total, mode, current, running, lang, start, pause, skip, onRestore, inPip, tasks, toggleTask }) {
   const [mm, ss] = fmt(remaining);
   const pct = total ? ((total - remaining) / total) * 100 : 0;
   const isBreak = mode === "break";
@@ -383,6 +383,17 @@ function MiniTimer({ remaining, total, mode, current, running, lang, start, paus
         )}
         <button className="mini-btn" onClick={skip} aria-label={lang === "fr" ? "Passer" : "Skip"}>⏭</button>
       </div>
+      {tasks && tasks.length > 0 && (
+        <div className="mini-todo">
+          {tasks.map(task => (
+            <div key={task.id} className={`mini-todo-item${task.id === (current && current.id) ? " active" : ""}`}
+                 onClick={() => toggleTask && toggleTask(task.id)}>
+              <div className={`mini-todo-check${task.done ? " done" : ""}`}>{task.done ? "✓" : ""}</div>
+              <div className={`mini-todo-label${task.done ? " done" : ""}`}>{task.title[lang] || task.title.fr}</div>
+            </div>
+          ))}
+        </div>
+      )}
       {!inPip && <div className="mini-drag-hint">{lang === "fr" ? "déplaçable" : "drag me"}</div>}
     </div>
   );
@@ -1061,10 +1072,12 @@ function App() {
       {nopeTask && <NotFeelingItModal task={nopeTask} lang={lang} onChoose={handleNopeChoice} onClose={() => setNopeTask(null)} />}
       {running && mode === "work" && !hyper && !panic && !mini && <ParkingLotFloater lang={lang} onDrop={addDump} />}
       {mini && !pipWindow && <MiniTimer remaining={remaining} total={total} mode={mode} current={active} running={running} lang={lang}
-                          start={startT} pause={pauseT} skip={skipT} onRestore={() => setMini(false)} />}
+                          start={startT} pause={pauseT} skip={skipT} onRestore={() => setMini(false)}
+                          tasks={tasks.filter(x => !x.done).slice(0, 4)} toggleTask={toggleTask} />}
       {pipWindow && pipWindow.document && pipWindow.document.querySelector(".pip-host") && ReactDOM.createPortal(
         <MiniTimer remaining={remaining} total={total} mode={mode} current={active} running={running} lang={lang}
-                   start={startT} pause={pauseT} skip={skipT} onRestore={closeMini} inPip />,
+                   start={startT} pause={pauseT} skip={skipT} onRestore={closeMini} inPip
+                   tasks={tasks.filter(x => !x.done).slice(0, 4)} toggleTask={toggleTask} />,
         pipWindow.document.querySelector(".pip-host")
       )}
       <Confetti trigger={confettiTrigger} reducedMotion={reducedMotion} />

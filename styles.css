@@ -1529,6 +1529,51 @@ input, textarea, select { -webkit-tap-highlight-color: transparent; }
 .mini-timer.mini-pip .mini-time { font-size: 52px; }
 .mini-timer.mini-pip .mini-task { -webkit-line-clamp: 2; line-clamp: 2; }
 
+/* Mini-timer : todo list */
+.mini-todo {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1.5px solid rgba(0,0,0,0.12);
+}
+.mini-todo-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  padding: 2px 0;
+  border-radius: 4px;
+  transition: opacity 0.12s;
+}
+.mini-todo-item:hover { opacity: 0.8; }
+.mini-todo-check {
+  width: 13px; height: 13px;
+  border: 1.5px solid var(--ink);
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  transition: background 0.12s;
+}
+.mini-todo-check.done { background: var(--coral); border-color: var(--coral); color: white; }
+.mini-todo-label {
+  font-size: 11px;
+  font-family: var(--font-body);
+  color: var(--ink);
+  opacity: 0.7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.mini-todo-label.done { text-decoration: line-through; opacity: 0.35; }
+.mini-todo-item.active .mini-todo-label { color: var(--coral); opacity: 1; font-weight: 600; }
+.mini-todo-item.active .mini-todo-check { border-color: var(--coral); }
+
 /* ═══════════════════════════════════════════════════════════
    TOAST (notif fugitive)
    ═══════════════════════════════════════════════════════════ */
