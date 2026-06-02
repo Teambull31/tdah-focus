@@ -701,24 +701,30 @@ function App() {
   // ── Export état timer → timer-pip.html via localStorage ──
   React.useEffect(() => {
     const active = tasks.find(x => x.id === activeId);
+    const todoList = tasks
+      .filter(x => !x.done)
+      .slice(0, 4)
+      .map(x => ({ id: x.id, title: x.title[lang] || x.title.fr, done: x.done, active: x.id === activeId }));
     try {
       localStorage.setItem('cerveau:v1:pip:state', JSON.stringify({
         remaining, total, mode, running,
         current: active ? (active.title[lang] || active.title.fr) : null,
+        todoList,
         ts: Date.now(),
       }));
     } catch(e) {}
-  }, [remaining, mode, running, activeId, lang]);
+  }, [remaining, mode, running, activeId, lang, tasks]);
 
   // ── Écoute commandes depuis timer-pip.html ──
   React.useEffect(() => {
     const onStorage = (e) => {
       if (e.key !== 'cerveau:v1:pip:cmd') return;
       try {
-        const { cmd } = JSON.parse(e.newValue || '{}');
+        const { cmd, id } = JSON.parse(e.newValue || '{}');
         if (cmd === 'toggle') setRunning(r => !r);
         else if (cmd === 'stop') { setRunning(false); setMode('work'); setRemaining(pomoSec); }
         else if (cmd === 'skip') setMode(m => m === 'work' ? 'break' : 'work');
+        else if (cmd === 'toggleTask' && id != null) setTasks(ts => ts.map(x => x.id !== id ? x : { ...x, done: !x.done }));
       } catch(e2) {}
     };
     window.addEventListener('storage', onStorage);

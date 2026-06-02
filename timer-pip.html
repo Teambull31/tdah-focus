@@ -100,6 +100,52 @@
   .btn.primary { background: var(--coral); border-color: var(--coral); color: white; }
   .btn.primary.break { background: var(--sky); border-color: var(--sky); }
 
+  /* Mini todo list */
+  .todo-list {
+    width: 100%;
+    max-width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 2px;
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+  }
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 3px 0;
+  }
+  .todo-item:hover .todo-label { color: var(--text); }
+  .todo-check {
+    width: 14px; height: 14px;
+    border: 1.5px solid rgba(245,241,234,0.35);
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .todo-check.done { background: var(--coral); border-color: var(--coral); }
+  .todo-label {
+    font-size: 11px;
+    color: rgba(245,241,234,0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .todo-label.done { text-decoration: line-through; opacity: 0.35; }
+  .todo-item.active .todo-label { color: var(--coral); font-weight: 600; }
+  .todo-empty {
+    font-size: 10px;
+    color: rgba(245,241,234,0.2);
+    text-align: center;
+    padding: 2px 0;
+  }
+
   .hint {
     font-size: 10px;
     color: rgba(245,241,234,0.2);
@@ -123,6 +169,7 @@
     <button class="btn primary" id="btn-toggle" onclick="send('toggle')">▶ Démarrer</button>
     <button class="btn" onclick="send('stop')">■ Stop</button>
   </div>
+  <div class="todo-list" id="todo-list"></div>
   <div class="hint">Cerveau.exe — gardez cette fenêtre ouverte</div>
 </div>
 
@@ -137,9 +184,27 @@
     return pad(Math.floor(s / 60)) + ':' + pad(s % 60);
   }
 
-  function send(cmd) {
-    try { localStorage.setItem(KEY_CMD, JSON.stringify({ cmd, ts: Date.now() })); }
+  function send(cmd, extra) {
+    try { localStorage.setItem(KEY_CMD, JSON.stringify({ cmd, ...extra, ts: Date.now() })); }
     catch(e) {}
+  }
+
+  function renderTodo(todoList) {
+    const el = document.getElementById('todo-list');
+    if (!todoList || todoList.length === 0) {
+      el.innerHTML = '<div class="todo-empty">Aucune tâche en cours</div>';
+      return;
+    }
+    el.innerHTML = todoList.map(task => `
+      <div class="todo-item${task.active ? ' active' : ''}" onclick="send('toggleTask', {id: ${task.id}})">
+        <div class="todo-check${task.done ? ' done' : ''}">${task.done ? '✓' : ''}</div>
+        <div class="todo-label${task.done ? ' done' : ''}">${escHtml(task.title)}</div>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   function render(state) {
@@ -161,6 +226,8 @@
     const btnToggle = document.getElementById('btn-toggle');
     btnToggle.textContent = running ? '⏸ Pause' : '▶ Démarrer';
     btnToggle.className   = 'btn primary' + (isBreak ? ' break' : '');
+
+    renderTodo(state && state.todoList);
 
     document.title = state ? fmt(rem) + ' — Cerveau.exe' : '⏱ Cerveau.exe';
   }
